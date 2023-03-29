@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import resolve
 from lists.views import home_page
 from django.http import HttpRequest
-from lists.models import Item
+from lists.models import Item, List
 
 class HomePageTest(TestCase):
     def setUp(self) -> None:
@@ -15,41 +15,58 @@ class HomePageTest(TestCase):
         response = self.client.get('/')
         self.assertTemplateUsed(response, 'home.html')
     
-    def test_can_save_post_request_data(self):
-        test_data = 'A new item in the town'
-        self.client.post('/', data={'item_text': test_data})
-        
-        self.assertEqual(Item.objects.count(), 1)
-        first_item = Item.objects.first()
-        self.assertEqual(first_item.text, test_data)
-
-    
-    def test_redirects_after_a_post_request(self):
-        response = self.client.post('/', data={'item_text': 'A new item in the town'})
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['location'], '/lists/the-only-list-in-the-world/')
-    
     def test_save_item_when_necessary(self):
         self.client.get('/')
         self.assertEqual(Item.objects.count(), 0)
 
+class NewListCreationTest(TestCase):
+    
+    def test_can_save_post_request_data(self):
+        self.client.post('/lists/new', data={'item_text': 'A new item in the town'})
+        
+        self.assertEqual(Item.objects.count(), 1)
+        first_item = Item.objects.first()
+        self.assertEqual(first_item.text, 'A new item in the town')
+
+    
+    def test_redirects_after_a_post_request(self):
+        response = self.client.post('/lists/new', data={'item_text': 'A new item in the town'})
+
+        list_new = List.objects.first()
+        self.assertRedirects(response, f'/lists/{list_new.id}/')
+
 class ListViewTest(TestCase):
     
     def test_uses_list_template(self):
-        response = self.client.get('/lists/the-only-list-in-the-world/')
+        list_ = List.objects.create()
+
+        response = self.client.get(f'/lists/{list_.id}/')
 
         self.assertTemplateUsed(response, 'list.html')
 
     def test_display_all_list_items(self):
-        Item.objects.create(text='Item 1')
-        Item.objects.create(text='Item 2')
+        correct_list = List.objects.create()
+        Item.objects.create(text='itemey 1', list=correct_list)
+        Item.objects.create(text='itemey 2', list=correct_list)
+        other_list = List.objects.create()
+        Item.objects.create(text='other list item 1', list=other_list)
+        Item.objects.create(text='other list item 2', list=other_list)
 
-        response = self.client.get('/lists/the-only-list-in-the-world/')
+        response = self.client.get(f'/lists/{correct_list.id}/')
 
-        self.assertContains(response,'Item 1')
-        self.assertContains(response, 'Item 2')
+        self.assertContains(response, 'itemey 1')
+        self.assertContains(response, 'itemey 2')
+        self.assertNotContains(response, 'other list item 1')
+        self.assertNotContains(response, 'other list item 2')
+    
+    def test_passes_correct_list_to_template(self):
+        other_list = List.objects.create()
+        correct_list = List.objects.create()
 
-class ItemModelTest(TestCase):
+        response = self.client.get(f'/lists/{correct_list.id}/')
+        self.assertEqual(response.context['list'], correct_list)
+
+class ListAndItemModelTest(TestCase):
     def setUp(self) -> None:
         return super().setUp()
     
@@ -57,20 +74,59 @@ class ItemModelTest(TestCase):
         return super().tearDown()
     
     def test_saving_and_retriving_item(self):
+        list_ = List()
+        list_.save()
 
         item_1 = Item()
         item_1.text = 'First Item'
+        item_1.list = list_
         item_1.save()
 
         item_2 = Item()
         item_2.text = 'Second Item'
+        item_2.list = list_
         item_2.save()
+
+        saved_list = List.objects.first()
+        self.assertEqual(saved_list, list_)
 
         saved_items = Item.objects.all()
         self.assertEqual(2, saved_items.count())
 
         first_saved_item = saved_items[0]
-        second_saved_item = saved_items[1]
         self.assertEqual('First Item', first_saved_item.text)
-        self.assertEqual('Second Item', second_saved_item.text)
+        self.assertEqual(first_saved_item.list, list_)
 
+        second_saved_item = saved_items[1]
+        self.assertEqual('Second Item', second_saved_item.text)
+        self.assertEqual(second_saved_item.list, list_)
+
+class NewItemTest(TestCase):
+
+    def test_can_save_a_POST_request_to_an_exisiting_list(self):
+        other_list = List.objects.create()
+        correct_list = List.objects.create()
+
+        self.client.post(
+            f'/lists/{correct_list.id}/add_item',
+            data = {
+            'item_text': 'A new item for an exisiting list'
+            }
+        )
+
+        self.assertEqual(Item.objects.count(), 1)
+        new_item = Item.objects.first()
+        self.assertEqual(new_item.text, 'A new item for an exisiting list')
+        self.assertEqual(new_item.list, correct_list)
+    
+    def test_redirects_to_list_view(self):
+        other_list = List.objects.create()
+        correct_list = List.objects.create()
+
+        response = self.client.post(
+            f'/lists/{correct_list.id}/add_item',
+            data={
+            'item_text': 'A new item for an exisiting list'
+            }
+        )
+        self.assertRedirects(response, f'/lists/{correct_list.id}/')

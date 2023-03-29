@@ -4,7 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from django.test import LiveServerTestCase
 import time
 
-MAX_WAIT = 10
+MAX_WAIT = 15
 
 class NewVisitorTest(LiveServerTestCase):
 
@@ -104,7 +104,7 @@ class NewVisitorTest(LiveServerTestCase):
 
         # Francis gets his own unique URL
         francis_list_url = self.browser.current_url
-        self.assertRegex(francis_list_url, 'list/.+')
+        self.assertRegex(francis_list_url, 'lists/.+')
         self.assertNotEqual(francis_list_url, edith_list_url)
 
         # Again there is no trace of Edith's list
@@ -112,4 +112,4 @@ class NewVisitorTest(LiveServerTestCase):
         self.assertNotIn('Buy peacock feather', page_text)
         self.assertIn('Buy milk', page_text)
 
-        # Satisfied, they both get to sleep
+        # Satisfied, they both get to sleep    
