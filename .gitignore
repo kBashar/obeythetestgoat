@@ -6,3 +6,4 @@ geckodriver.log
 .env/
 env/
 env
+.env
