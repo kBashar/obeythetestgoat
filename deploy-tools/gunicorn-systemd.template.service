@@ -5,7 +5,7 @@ Description=Gunicorn server for DOMAIN
 Restart=on-failure
 User=elspeth
 WorkingDirectory=/home/elspeth/sites/DOMAIN
-EnvironmentFile=/home/elspeth/sites/DOMAIN/.env
+EnvironmentFile=/home/elspeth/sites/DOMAIN/.venv
 
 ExecStart=/home/elspeth/sites/DOMAIN/virtualenv/bin/gunicorn \
     --bind unix:/tmp/DOMAIN.socket \
