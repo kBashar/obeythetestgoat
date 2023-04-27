@@ -1,5 +1,6 @@
 from django.test import TestCase
 from lists.models import Item, List
+from django.utils.html import escape
 
 class HomePageTest(TestCase):
     def setUp(self) -> None:
@@ -31,6 +32,22 @@ class NewListCreationTest(TestCase):
 
         list_new = List.objects.first()
         self.assertRedirects(response, f'/lists/{list_new.id}/')
+    
+    def test_validation_errors_are_sent_backt_to_home_page(self):
+        response = self.client.post('/lists/new', data={
+            'item_text': ''
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'home.html')
+
+        expected_error = escape("You can't have an empty item list")
+        self.assertContains(response, expected_error)
+
+    def test_invalid_list_item_not_saved(self):
+        self.client.post('/lists/new', data={'item_text': ''})
+
+        self.assertEqual(List.objects.count(), 0)
+        self.assertEqual(Item.objects.count(), 0)
 
 class ListViewTest(TestCase):
     
