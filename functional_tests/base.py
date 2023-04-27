@@ -33,7 +33,7 @@ class FunctionalTest(StaticLiveServerTestCase):
     #     self.wait_for(lambda: self.assertIn(row_text, [row.text for row in rows]))
     #     return
 
-    def wait_for_row_in_list_table(self, row_text):
+    def wait_for_row_in_table(self, row_text):
         start_time = time.time()
         while True:
             try:
