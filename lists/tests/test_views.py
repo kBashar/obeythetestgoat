@@ -1,6 +1,7 @@
 from django.test import TestCase
 from lists.models import Item, List
 from django.utils.html import escape
+from lists.forms import ItemForm
 
 class HomePageTest(TestCase):
     def setUp(self) -> None:
@@ -16,6 +17,10 @@ class HomePageTest(TestCase):
     def test_save_item_when_necessary(self):
         self.client.get('/')
         self.assertEqual(Item.objects.count(), 0)
+    
+    def test_use_item_form(self):
+        response = self.client.get('/')
+        self.assertIsInstance(response.context['form'], ItemForm)
 
 class NewListCreationTest(TestCase):
     
